@@ -3,7 +3,7 @@
 //	You can imagein everything, but no new color :)
 //	under Creative Commone "CC  BY-SA" licenze    SHARE + COPY But UNDER SAME LIZENZE and with my Name in it.. :) 
 //  
-// Version 0.1 - 15.4.2013
+// Version 0.1 - 28.06.2013
 // 
 
 
@@ -12,35 +12,43 @@ const
 
   Launchpad_Device = 3;			//   <----- Edit hier your Launchpad Device number from Mairlist Log
 
+  cRESTARTOPTION  = 0;			// Restart a Playing Cart if you Press the button again.
+  
   
 /////////////////////////////////////////////////////////////////////////////////////////// DON*T Touch unless you know what you are doing !!!  
 
-  Midichannel = 151;
+  Midichannel 				=	151;
+  MidiEncoderchannel		=	183;
 
   
-  cOff   = 127; 		    // LED - OFF
+  cOff   		= 127; 		// LED - OFF   <--- Turn LED Complete off
   
-  cHighGreen = 01;		// LED HIGH Green
-  cBlinkGreen = 02;		// LED BlInK Green
+  cHighGreen 	= 01;		// LED HIGH Green	<-- Turn LED to Green
+  cBlinkGreen 	= 02;		// LED BlInK Green	<-- Let the LED Blink Green
 
-  cHighPurple = 03;		// LED High Purple
-  cBlinkPurple = 04;	// LED Blink Purple
+  cHighPurple 	= 03;		// LED High Purple	<-- Turn LED to Purple 
+  cBlinkPurple 	= 04;		// LED Blink Purple	<-- LeT the Led Blink in Fucking Purple
 
-  cHighBlue  = 05;		// LED HighBlue
-  cBlinkBlue  = 06;		// LED blinkBlue
+  cHighBlue  	= 05;		// LED HighBlue		<- Turn the LED to Blue
+  cBlinkBlue  	= 06;		// LED blinkBlue	<-- ... and Let the Blue Blink
   
-  cHighAmber = 07;		// LED High Amber
-  cBlinkAmber = 08;		// LED Blink Amber
+  cHighAmber 	= 07;		// LED High Amber	<-- this is the "Ugly" Basic Color - i say it is pink. The Designer say its amber
+  cBlinkAmber 	= 08;		// LED Blink Amber	<-- ... Blink ... 
   
   
+  cSpecialOff 	= 0 ;		// Turn the special LEDs Amber (coldnt turn it off)
+  cSpecialOn  	= 1 ;		// Turn the special LED Blue
+  cSpecialBlink = 2;		// Let the special key Blink blue
   
   
   
 var 
-
 	Buttons   : array[-1..100] of integer; 	
     StopButtons: array[-1..8] of integer;
-	SessionButtons: array[-1..8] of integer;
+	DuckButtons: array[-1..8] of integer;
+	VolumeControl: array[-1..8] of integer;
+	Volume: array[-1..4] of integer;
+	encoders: array[-1..8] of integer;
 	countdown : integer;
 
 function initLaunchpad(werte:integer):boolean;
@@ -48,28 +56,61 @@ var
 	i,x:integer;
 begin
 	i:=0;
-		MidiOutListDevices;  
-	    midioutopen(Launchpad_Device);
-			StopButtons[1] := 72;
-			StopButtons[2] := 73;
-			StopButtons[3] := 74;
-			StopButtons[0] := 75;
+		MidiOutListDevices;  				// List the Midi Devices
+		midioutopen(Launchpad_Device);		// Open Midi Devices
+			
+			StopButtons[1] := 72;			// Stop Keys ( the buttons on the button) - (first button) 1 mod 4 => 1 
+			StopButtons[2] := 73;			// Stop Keys ( the buttons on the button) - (second button) 2 mod 4 => 2 
+			StopButtons[3] := 74;			// Stop Keys ( the buttons on the button) - (third button) 3 mod 4 => 3 
+			StopButtons[0] := 75;			// Stop Keys ( the buttons on the button) - (Forth button) 4 mod 4 => 0
+			
+			DuckButtons[1] := 68;			// Duck volume button 
+			DuckButtons[2] := 69;			// Duck volume button 
+			DuckButtons[3] := 70;			// Duck volume button 
+			DuckButtons[0] := 71;			// Duck volume button 	
+			
+			Volume[0] := 0;				// 100% Volume
+			Volume[1] := 0;
+			Volume[2] := 0;
+			Volume[3] := 0;
+			
+			Encoders[0] :=19;
+			Encoders[1] :=16;
+			Encoders[2] :=17;
+			Encoders[3] :=18;
+			Encoders[5] :=20;
+			Encoders[6] :=21;
+			Encoders[7] :=22;
+			Encoders[4] :=23;
+		
+			Volumecontrol[1]:= 16;			//Volume Control
+			Volumecontrol[2]:= 17;
+			Volumecontrol[3]:= 18;
+			Volumecontrol[0]:= 19;
+			
+			
+					
+		// Set the Buttons -> Number the Buttons to 0 to 31
 		for i:=0 to 31 do
 			begin
 				Buttons[i] := i+32;
-				
 			end;
 
-			// Turn the first two StopButtons on (first 2 Buttons for Cart Player on)
+			// Turn the first two StopButtons on (first the Buttons for Cart Player on)
 		for i:=0 to 3 do
 			begin
-
 				midiout( Launchpad_Device , Midichannel , StopButtons[i], 1);
+				midiout(Launchpad_Device, MidiEncoderChannel, Encoders[i], 15 );
+				midiout(Launchpad_Device, MidiEncoderChannel, Encoders[i+4], 8 );
 			end;
+			
+			// Turn the Buttons off
 		for i:=0 to 31 do 
 			begin
-				midiout( Launchpad_Device , Midichannel ,Buttons[i], 127);
+				midiout( Launchpad_Device , Midichannel ,Buttons[i], cOff);
 			end;
+		
+		
 	result:=true;	
 end;
 
@@ -90,17 +131,8 @@ begin
 
 end;
 
-
-procedure onTimer();
-
-begin
-
-	
-end;
-
 procedure OnCartPlayerEOFWarning(PlayerIndex: integer);
 begin
-	
 	midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkPurple);
 end;
 
@@ -108,93 +140,126 @@ end;
 procedure OnCartPlayerStateChange(PlayerIndex: integer; OldState: TPlayerState; NewState: TPlayerState);
 var row: integer;
 begin
+
 	row := PlayerIndex mod 4;
-	
-
-systemlog(inttostr(row) );	
-if  (OldState = psStopped) then 
-	begin
-			midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighAmber);
-		
-	end
-else if (NewState = psLoaded) then 
-	begin
-			midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighGreen);
-		
-	end
-else if (NewState = psEmpty) then 
-	begin
-		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],coff);
-	end	
-else if (NewState = psPlaying) then 
-	begin
-		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],chighBlue);
-		
-	end
-else if (NewState = psFading) then 
-	begin
-		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkblue);
-	end
-else if (NewState = psError) then 
-	begin
-		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkAmber);
-	end
-
-else if (NewState = psLoading) then 
-	begin
-	  midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkgreen);	
-	end;
-	
-	
+	systemlog(inttostr(row) );	
+	if  (OldState = psStopped) then 
+		begin
+				midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighAmber);
+		end
+	else if (NewState = psLoaded) then 
+		begin
+				midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighGreen);
+		end
+	else if (NewState = psEmpty) then 
+		begin
+			midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],coff);
+		end	
+	else if 	(NewState = psPlaying) then 
+		begin
+			midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],chighBlue);
+		end
+	else if (NewState = psFading) then 
+		begin
+			midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkblue);
+		end
+		else if (NewState = psError) then 
+		begin
+			midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkAmber);
+		end
+	else if (NewState = psLoading) then 
+		begin
+			midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkgreen);	
+		end;
 	
 end;
 
+procedure setencoder(EncoderIndex, Volume: integer);
+var 
+	i,x:integer;
+begin
+	I:=0;
+	X:=0;
+	X:= volume  + 101  ;
+	midiout(Launchpad_Device, MidiEncoderChannel, Encoders[EncoderIndex], X /6 );
+end;
 
-
-
-
-
+Procedure SetVolumeToRow(rowindex, Volume:integer);
+var
+	i,x,y: integer;
+begin
+	i:=0;
+	for y:=1 to 32 do
+		begin
+			x := (y mod 4);
+				if (x = (rowindex)) then
+					begin
+						ExecuteCommand('CARTWALL ' + inttostr(y) + ' VOLUME ' + inttostr(volume));
+					end;
+		end;
+end;
 
 
 procedure OnMidiMessage(Device: integer; Status, Data1, Data2: byte);
 var 
-row,i,i_div,x,y:integer;
+	rowindex,row,i,i_div,x,y:integer;
 begin
-row:=0;
-i:=0;
-i_div:=0;
+	row:=0;
+	i:=0;
+	i_div:=0;
 	
 			i_div := Data1 - 31;
+			if data1 = 16 then rowindex := 1;
+			if data1 = 17 then rowindex := 2;
+			if data1 = 18 then rowindex := 3;
+			if data1 = 19 then rowindex := 0;
+					if (data2 = 63) then 
+						begin
+							if (Volume[rowindex] >-100) then
+								begin
+									Volume[rowindex] := volume[rowindex] -1;
+								end;
+						end;
+					if (data2 = 65) then 
+						begin
+							if (Volume[rowindex] <0) then
+								begin
+									Volume[rowindex] := volume[rowindex] +1;
+								end;
+						end;
+						setencoder(rowindex,Volume[rowindex]);
+						SetVolumeToRow(rowindex,Volume[rowindex]);
+						
+			
+			
+			
 			if (Data2 = 127)  then begin
+				// if Button is pressed
 				if (data1 > 30) and (data1 < 64) then
+						// and if button in the coloration Field
 					begin
-						ExecuteCommand('CARTWALL ' + inttostr(i_div) + ' START/STOP');
+						if  (cRESTARTOPTION = 1) then ExecuteCommand('CARTWALL ' + inttostr(i_div) + ' STOP');
+						ExecuteCommand('CARTWALL ' + inttostr(i_div) + ' START');
+						//start Player 
 					end
 				else if (data1 > 64) then begin 
-				
-				for i := 0 to 3 do
-					begin
-						if (Data1 = StopButtons[i]) then
-							begin
-							 systemlog('button no ' + inttostr(i));
-								for y:=1 to 32 do
-									begin
-									  x := (y mod 4);
-									  systemlog('mod'+inttostr(x));
-									  if (x = (i)) then
+					for i := 0 to 3 do
+						begin
+							if (Data1 = StopButtons[i]) then
+								begin
+									for y:=1 to 32 do
 										begin
-											ExecuteCommand('CARTWALL ' + inttostr(y) + ' STOP');
-										end;
-										
-									end;
-							end;
-					end;
-				
-				end;
-			 end;
-    		systemlog(inttostr(Data1) + ' ' + inttostr(Data2) + ' ' + inttostr(Status) );
-			
+										x := (y mod 4);
+										if (x = (i)) then
+											begin
+												ExecuteCommand('CARTWALL ' + inttostr(y) + ' STOP');
+											end;
+										end;	
+								end;
+						end;
 					
+					end;
+				end;
 end;
 
 begin
