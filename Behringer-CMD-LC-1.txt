@@ -1,0 +1,201 @@
+//	Behringer cmd LC-1
+// 	written by Thomas "Kloppi" Kloppholz
+//	You can imagein everything, but no new color :)
+//	under Creative Commone "CC  BY-SA" licenze    SHARE + COPY But UNDER SAME LIZENZE and with my Name in it.. :) 
+//  
+// Version 0.1 - 15.4.2013
+// 
+
+
+
+const
+
+  Launchpad_Device = 3;			//   <----- Edit hier your Launchpad Device number from Mairlist Log
+
+  
+/////////////////////////////////////////////////////////////////////////////////////////// DON*T Touch unless you know what you are doing !!!  
+
+  Midichannel = 151;
+
+  
+  cOff   = 127; 		    // LED - OFF
+  
+  cHighGreen = 01;		// LED HIGH Green
+  cBlinkGreen = 02;		// LED BlInK Green
+
+  cHighPurple = 03;		// LED High Purple
+  cBlinkPurple = 04;	// LED Blink Purple
+
+  cHighBlue  = 05;		// LED HighBlue
+  cBlinkBlue  = 06;		// LED blinkBlue
+  
+  cHighAmber = 07;		// LED High Amber
+  cBlinkAmber = 08;		// LED Blink Amber
+  
+  
+  
+  
+  
+var 
+
+	Buttons   : array[-1..100] of integer; 	
+    StopButtons: array[-1..8] of integer;
+	SessionButtons: array[-1..8] of integer;
+	countdown : integer;
+
+function initLaunchpad(werte:integer):boolean;
+var
+	i,x:integer;
+begin
+	i:=0;
+		MidiOutListDevices;  
+	    midioutopen(Launchpad_Device);
+			StopButtons[1] := 72;
+			StopButtons[2] := 73;
+			StopButtons[3] := 74;
+			StopButtons[0] := 75;
+		for i:=0 to 31 do
+			begin
+				Buttons[i] := i+32;
+				
+			end;
+
+			// Turn the first two StopButtons on (first 2 Buttons for Cart Player on)
+		for i:=0 to 3 do
+			begin
+
+				midiout( Launchpad_Device , Midichannel , StopButtons[i], 1);
+			end;
+		for i:=0 to 31 do 
+			begin
+				midiout( Launchpad_Device , Midichannel ,Buttons[i], 127);
+			end;
+	result:=true;	
+end;
+
+
+	
+procedure OnLoad;
+begin
+	initLaunchpad(0);
+ 
+	countdown := 0;
+
+	enabletimer(1000);
+end;
+
+procedure OnShutdown;
+begin
+	initLaunchpad(0);
+
+end;
+
+
+procedure onTimer();
+
+begin
+
+	
+end;
+
+procedure OnCartPlayerEOFWarning(PlayerIndex: integer);
+begin
+	
+	midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkPurple);
+end;
+
+
+procedure OnCartPlayerStateChange(PlayerIndex: integer; OldState: TPlayerState; NewState: TPlayerState);
+var row: integer;
+begin
+	row := PlayerIndex mod 4;
+	
+
+systemlog(inttostr(row) );	
+if  (OldState = psStopped) then 
+	begin
+			midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighAmber);
+		
+	end
+else if (NewState = psLoaded) then 
+	begin
+			midiout(Launchpad_Device, Midichannel, Buttons[PlayerIndex], cHighGreen);
+		
+	end
+else if (NewState = psEmpty) then 
+	begin
+		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],coff);
+	end	
+else if (NewState = psPlaying) then 
+	begin
+		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],chighBlue);
+		
+	end
+else if (NewState = psFading) then 
+	begin
+		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkblue);
+	end
+else if (NewState = psError) then 
+	begin
+		midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkAmber);
+	end
+
+else if (NewState = psLoading) then 
+	begin
+	  midiout(Launchpad_Device,Midichannel, Buttons[PlayerIndex],cBlinkgreen);	
+	end;
+	
+	
+	
+end;
+
+
+
+
+
+
+
+
+procedure OnMidiMessage(Device: integer; Status, Data1, Data2: byte);
+var 
+row,i,i_div,x,y:integer;
+begin
+row:=0;
+i:=0;
+i_div:=0;
+	
+			i_div := Data1 - 31;
+			if (Data2 = 127)  then begin
+				if (data1 > 30) and (data1 < 64) then
+					begin
+						ExecuteCommand('CARTWALL ' + inttostr(i_div) + ' START/STOP');
+					end
+				else if (data1 > 64) then begin 
+				
+				for i := 0 to 3 do
+					begin
+						if (Data1 = StopButtons[i]) then
+							begin
+							 systemlog('button no ' + inttostr(i));
+								for y:=1 to 32 do
+									begin
+									  x := (y mod 4);
+									  systemlog('mod'+inttostr(x));
+									  if (x = (i)) then
+										begin
+											ExecuteCommand('CARTWALL ' + inttostr(y) + ' STOP');
+										end;
+										
+									end;
+							end;
+					end;
+				
+				end;
+			 end;
+    		systemlog(inttostr(Data1) + ' ' + inttostr(Data2) + ' ' + inttostr(Status) );
+			
+					
+end;
+
+begin
+end.
